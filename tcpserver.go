@@ -133,7 +133,7 @@ func (srv *TCPServer) serve(conn net.Conn) {
 			defer func() {
 				e := recover()
 				if e != nil && srv.ErrorLog != nil {
-					log.Print(e)
+					srv.ErrorLog.Print(e)
 				}
 			}()
 			srv.OnAccept(srv, conn.(*net.TCPConn), closeCh)
