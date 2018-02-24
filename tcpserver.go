@@ -25,15 +25,19 @@ type connContext struct {
 	closeCh chan struct{}
 }
 
-func (srv *TCPServer) Shutdown(ctx context.Context) error {
-	srv.closeCh <- struct{}{}
-	if err := srv.l.Close(); err != nil {
-		return err
+func (srv *TCPServer) Shutdown(ctx context.Context) (err error) {
+	err = srv.l.Close()
+	select {
+	case srv.closeCh <- struct{}{}:
+	default:
 	}
 
 	srv.connsMu.RLock()
 	for _, c := range srv.conns {
-		c.closeCh <- struct{}{}
+		select {
+		case c.closeCh <- struct{}{}:
+		default:
+		}
 	}
 	srv.connsMu.RUnlock()
 
@@ -43,7 +47,7 @@ func (srv *TCPServer) Shutdown(ctx context.Context) error {
 			srv.connsMu.RLock()
 			if len(srv.conns) == 0 {
 				srv.connsMu.RUnlock()
-				return nil
+				return
 			}
 			srv.connsMu.RUnlock()
 		case <-ctx.Done():
@@ -52,25 +56,30 @@ func (srv *TCPServer) Shutdown(ctx context.Context) error {
 				c.conn.Close()
 			}
 			srv.connsMu.RUnlock()
-			return ctx.Err()
+			err = ctx.Err()
+			return
 		}
 	}
 }
 
-func (srv *TCPServer) Close() error {
-	srv.closeCh <- struct{}{}
-	if err := srv.l.Close(); err != nil {
-		return err
+func (srv *TCPServer) Close() (err error) {
+	err = srv.l.Close()
+	select {
+	case srv.closeCh <- struct{}{}:
+	default:
 	}
 
 	srv.connsMu.RLock()
 	for _, c := range srv.conns {
-		c.closeCh <- struct{}{}
+		select {
+		case c.closeCh <- struct{}{}:
+		default:
+		}
 		c.conn.Close()
 	}
 	srv.connsMu.RUnlock()
 
-	return nil
+	return
 }
 
 func (srv *TCPServer) ListenAndServe() error {
@@ -82,24 +91,28 @@ func (srv *TCPServer) ListenAndServe() error {
 	return srv.Serve(l)
 }
 
-func (srv *TCPServer) Serve(l net.Listener) error {
-	defer l.Close()
+func (srv *TCPServer) Serve(l net.Listener) (err error) {
 	srv.l = l
 	srv.conns = make(map[net.Conn]connContext)
 	srv.closeCh = make(chan struct{}, 1)
+	defer func() {
+		srv.l.Close()
+	}()
 	for {
-		conn, e := l.Accept()
-		if e != nil {
+		var conn net.Conn
+		conn, err = l.Accept()
+		if err != nil {
 			select {
 			case <-srv.closeCh:
-				return nil
+				err = nil
+				return
 			default:
 			}
-			if ne, ok := e.(net.Error); ok && ne.Temporary() {
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				time.Sleep(5 * time.Millisecond)
 				continue
 			}
-			return e
+			return
 		}
 		go srv.serve(conn)
 	}
