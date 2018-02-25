@@ -15,7 +15,6 @@ type TCPServer struct {
 	Handler   Handler
 	TLSConfig *tls.Config
 	ErrorLog  *log.Logger
-	UserData  interface{}
 
 	l       net.Listener
 	conns   map[net.Conn]connContext
@@ -154,7 +153,7 @@ func (srv *TCPServer) serve(conn net.Conn) {
 				}
 			}()
 			if handlerConn != nil {
-				srv.Handler.Serve(srv, handlerConn, closeCh)
+				srv.Handler.Serve(handlerConn, closeCh)
 			}
 		}()
 	}

@@ -17,83 +17,89 @@ var (
 )
 
 type TextProtocol struct {
-	OnReadLine  func(line string) int
-	OnReadData  func(data []byte)
+	OnReadLine  func(ctx *TextProtocolContext, line string) int
+	OnReadData  func(ctx *TextProtocolContext, data []byte)
 	MaxLineSize int
-
-	conn    net.Conn
-	closeCh <-chan struct{}
-
-	doneCh chan struct{}
-	rd     *bufio.Reader
-	wr     *bufio.Writer
 }
 
-func (tp *TextProtocol) Serve(srv *TCPServer, conn net.Conn, closeCh <-chan struct{}) {
-	tp.conn = conn
-	tp.closeCh = closeCh
-	doneCh := make(chan struct{}, 1)
-	tp.doneCh = doneCh
-	rd := bufio.NewReader(conn)
-	tp.rd = rd
-	wr := bufio.NewWriter(conn)
-	tp.wr = wr
+func (tp *TextProtocol) Serve(conn net.Conn, closeCh <-chan struct{}) {
+	ctx := &TextProtocolContext{
+		tp:      tp,
+		conn:    conn,
+		closeCh: closeCh,
+		doneCh:  make(chan struct{}, 1),
+		rd:      bufio.NewReader(conn),
+		wr:      bufio.NewWriter(conn),
+	}
+	ctx.Serve()
+}
+
+type TextProtocolContext struct {
+	tp      *TextProtocol
+	conn    net.Conn
+	closeCh <-chan struct{}
+	doneCh  chan struct{}
+	rd      *bufio.Reader
+	wr      *bufio.Writer
+}
+
+func (ctx *TextProtocolContext) Serve() {
+	maxLineSize := ctx.tp.MaxLineSize
+	if maxLineSize <= 0 {
+		maxLineSize = DefMaxLineSize
+	}
 mainloop:
 	for {
 		select {
-		case <-closeCh:
+		case <-ctx.closeCh:
 			break mainloop
-		case <-doneCh:
+		case <-ctx.doneCh:
 			break mainloop
 		default:
 		}
-		maxLineSize := tp.MaxLineSize
-		if maxLineSize <= 0 {
-			maxLineSize = DefMaxLineSize
-		}
-		line, err := ReadBytesLimit(rd, '\n', maxLineSize)
+		line, err := ReadBytesLimit(ctx.rd, '\n', maxLineSize)
 		if err != nil {
 			if err == errBufferLimitExceeded {
 				err = errMaxLineSizeExceeded
 			}
-			doneCh <- struct{}{}
+			ctx.doneCh <- struct{}{}
 			continue
 		}
 		line = TrimCrLf(line)
-		size := tp.OnReadLine(string(line))
+		size := ctx.tp.OnReadLine(ctx, string(line))
 		if size <= 0 {
 			continue
 		}
 		buf := make([]byte, size)
 		for i := 0; i < size; {
-			n, err := rd.Read(buf[i:])
+			n, err := ctx.rd.Read(buf[i:])
 			if err != nil {
-				doneCh <- struct{}{}
+				ctx.doneCh <- struct{}{}
 				continue
 			}
 			i += n
 		}
-		tp.OnReadData(buf)
+		ctx.tp.OnReadData(ctx, buf)
 	}
-	wr.Flush()
+	ctx.wr.Flush()
 }
 
-func (tp *TextProtocol) SendLine(line string) error {
-	return tp.SendData([]byte(line + "\r\n"))
+func (ctx *TextProtocolContext) SendLine(line string) error {
+	return ctx.SendData([]byte(line + "\r\n"))
 }
 
-func (tp *TextProtocol) SendData(buf []byte) error {
-	nn, err := tp.wr.Write(buf)
+func (ctx *TextProtocolContext) SendData(buf []byte) error {
+	nn, err := ctx.wr.Write(buf)
 	if err != nil {
-		tp.doneCh <- struct{}{}
+		ctx.doneCh <- struct{}{}
 		return err
 	}
 	if nn < len(buf) {
-		tp.doneCh <- struct{}{}
+		ctx.doneCh <- struct{}{}
 		return io.ErrShortWrite
 	}
-	if err := tp.wr.Flush(); err != nil {
-		tp.doneCh <- struct{}{}
+	if err := ctx.wr.Flush(); err != nil {
+		ctx.doneCh <- struct{}{}
 		return err
 	}
 	return nil
