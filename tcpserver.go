@@ -2,6 +2,7 @@ package tcpserver
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
 	"net"
 	"sync"
@@ -9,10 +10,11 @@ import (
 )
 
 type TCPServer struct {
-	Addr     string
-	ErrorLog *log.Logger
-	UserData interface{}
-	OnAccept func(srv *TCPServer, conn *net.TCPConn, closeCh <-chan struct{})
+	Addr      string
+	Handler   Handler
+	TLSConfig *tls.Config
+	ErrorLog  *log.Logger
+	UserData  interface{}
 
 	l       net.Listener
 	conns   map[net.Conn]connContext
@@ -128,7 +130,7 @@ func (srv *TCPServer) serve(conn net.Conn) {
 	}
 	srv.connsMu.Unlock()
 
-	if srv.OnAccept != nil {
+	if srv.Handler != nil {
 		func() {
 			defer func() {
 				e := recover()
@@ -136,7 +138,7 @@ func (srv *TCPServer) serve(conn net.Conn) {
 					srv.ErrorLog.Print(e)
 				}
 			}()
-			srv.OnAccept(srv, conn.(*net.TCPConn), closeCh)
+			srv.Handler.Serve(srv, conn, closeCh)
 		}()
 	}
 
