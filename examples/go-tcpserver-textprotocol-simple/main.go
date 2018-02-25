@@ -8,9 +8,18 @@ import (
 
 func main() {
 	tp := &tcpserver.TextProtocol{
+		OnAccept: func(ctx *tcpserver.TextProtocolContext) {
+			ctx.SendLine("WELCOME")
+		},
+		OnQuit: func(ctx *tcpserver.TextProtocolContext) {
+			ctx.SendLine("QUIT")
+		},
 		OnReadLine: func(ctx *tcpserver.TextProtocolContext, line string) int {
 			fmt.Println(line)
-			ctx.SendLine("OK: " + line)
+			if line == "QUIT" {
+				ctx.Done()
+			}
+			ctx.SendLine("PONG: " + line)
 			return 0
 		},
 		OnReadData: func(ctx *tcpserver.TextProtocolContext, data []byte) {

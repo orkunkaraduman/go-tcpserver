@@ -48,6 +48,13 @@ type TextProtocolContext struct {
 	wr      *bufio.Writer
 }
 
+func (ctx *TextProtocolContext) Done() {
+	select {
+	case ctx.doneCh <- struct{}{}:
+	default:
+	}
+}
+
 func (ctx *TextProtocolContext) Serve() {
 	maxLineSize := ctx.tp.MaxLineSize
 	if maxLineSize <= 0 {
@@ -70,7 +77,7 @@ mainloop:
 			if err == errBufferLimitExceeded {
 				err = errMaxLineSizeExceeded
 			}
-			ctx.doneCh <- struct{}{}
+			ctx.Done()
 			continue
 		}
 		line = TrimCrLf(line)
@@ -82,7 +89,7 @@ mainloop:
 		for i := 0; i < size; {
 			n, err := ctx.rd.Read(buf[i:])
 			if err != nil {
-				ctx.doneCh <- struct{}{}
+				ctx.Done()
 				continue
 			}
 			i += n
@@ -102,15 +109,15 @@ func (ctx *TextProtocolContext) SendLine(line string) error {
 func (ctx *TextProtocolContext) SendData(buf []byte) error {
 	nn, err := ctx.wr.Write(buf)
 	if err != nil {
-		ctx.doneCh <- struct{}{}
+		ctx.Done()
 		return err
 	}
 	if nn < len(buf) {
-		ctx.doneCh <- struct{}{}
+		ctx.Done()
 		return io.ErrShortWrite
 	}
 	if err := ctx.wr.Flush(); err != nil {
-		ctx.doneCh <- struct{}{}
+		ctx.Done()
 		return err
 	}
 	return nil
