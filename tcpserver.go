@@ -141,7 +141,7 @@ func (srv *TCPServer) serve(conn net.Conn) {
 			if srv.TLSConfig != nil {
 				tlsConn := tls.Server(conn, srv.TLSConfig)
 				if err := tlsConn.Handshake(); err != nil {
-					errorLog.Print("tls error:", err)
+					//errorLog.Print("tls error:", err)
 					handlerConn = nil
 				} else {
 					handlerConn = tlsConn
@@ -150,7 +150,7 @@ func (srv *TCPServer) serve(conn net.Conn) {
 			defer func() {
 				e := recover()
 				if e != nil {
-					errorLog.Print("panic:", e)
+					errorLog.Print(e)
 				}
 			}()
 			if handlerConn != nil {
