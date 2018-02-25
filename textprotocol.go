@@ -17,6 +17,8 @@ var (
 )
 
 type TextProtocol struct {
+	OnAccept    func(ctx *TextProtocolContext)
+	OnQuit      func(ctx *TextProtocolContext)
 	OnReadLine  func(ctx *TextProtocolContext, line string) int
 	OnReadData  func(ctx *TextProtocolContext, data []byte)
 	MaxLineSize int
@@ -50,6 +52,9 @@ func (ctx *TextProtocolContext) Serve() {
 	maxLineSize := ctx.tp.MaxLineSize
 	if maxLineSize <= 0 {
 		maxLineSize = DefMaxLineSize
+	}
+	if ctx.tp.OnAccept != nil {
+		ctx.tp.OnAccept(ctx)
 	}
 mainloop:
 	for {
@@ -85,6 +90,9 @@ mainloop:
 		ctx.tp.OnReadData(ctx, buf)
 	}
 	ctx.wr.Flush()
+	if ctx.tp.OnQuit != nil {
+		ctx.tp.OnQuit(ctx)
+	}
 }
 
 func (ctx *TextProtocolContext) SendLine(line string) error {
