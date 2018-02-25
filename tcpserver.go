@@ -3,6 +3,7 @@ package tcpserver
 import (
 	"context"
 	"crypto/tls"
+	"io/ioutil"
 	"log"
 	"net"
 	"sync"
@@ -131,14 +132,30 @@ func (srv *TCPServer) serve(conn net.Conn) {
 	srv.connsMu.Unlock()
 
 	if srv.Handler != nil {
+		errorLog := srv.ErrorLog
+		if errorLog == nil {
+			errorLog = log.New(ioutil.Discard, "", log.LstdFlags)
+		}
 		func() {
+			handlerConn := conn
+			if srv.TLSConfig != nil {
+				tlsConn := tls.Server(conn, srv.TLSConfig)
+				if err := tlsConn.Handshake(); err != nil {
+					errorLog.Print("tls error:", err)
+					handlerConn = nil
+				} else {
+					handlerConn = tlsConn
+				}
+			}
 			defer func() {
 				e := recover()
-				if e != nil && srv.ErrorLog != nil {
-					srv.ErrorLog.Print(e)
+				if e != nil {
+					errorLog.Print("panic:", e)
 				}
 			}()
-			srv.Handler.Serve(srv, conn, closeCh)
+			if handlerConn != nil {
+				srv.Handler.Serve(srv, handlerConn, closeCh)
+			}
 		}()
 	}
 
