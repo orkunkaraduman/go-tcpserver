@@ -20,6 +20,7 @@ type TextProtocol struct {
 	OnReadLine  func(ctx *TextProtocolContext, line string) int
 	OnReadData  func(ctx *TextProtocolContext, data []byte)
 	MaxLineSize int
+	UserData    interface{}
 }
 
 func (tp *TextProtocol) Serve(conn net.Conn, closeCh <-chan struct{}) {
@@ -35,6 +36,8 @@ func (tp *TextProtocol) Serve(conn net.Conn, closeCh <-chan struct{}) {
 }
 
 type TextProtocolContext struct {
+	UserData interface{}
+
 	tp      *TextProtocol
 	conn    net.Conn
 	closeCh <-chan struct{}
