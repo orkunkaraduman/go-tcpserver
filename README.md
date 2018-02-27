@@ -27,10 +27,10 @@ import (
 func main() {
 	prt := &tcpserver.TextProtocol{
 		OnAccept: func(ctx *tcpserver.TextProtocolContext) {
-			ctx.SendLine("WELCOME")
+			ctx.WriteLine("WELCOME")
 		},
 		OnQuit: func(ctx *tcpserver.TextProtocolContext) {
-			ctx.SendLine("QUIT")
+			ctx.WriteLine("QUIT")
 		},
 		OnReadLine: func(ctx *tcpserver.TextProtocolContext, line string) int {
 			fmt.Println(line)
@@ -38,7 +38,7 @@ func main() {
 				ctx.Close()
 				return 0
 			}
-			ctx.SendLine(line)
+			ctx.WriteLine(line)
 			return 0
 		},
 		OnReadData: func(ctx *tcpserver.TextProtocolContext, data []byte) {

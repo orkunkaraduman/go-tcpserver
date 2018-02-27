@@ -123,13 +123,13 @@ mainloop:
 	}
 }
 
-// SendLine writes a line to connection.
-func (ctx *TextProtocolContext) SendLine(line string) error {
-	return ctx.SendData([]byte(line + "\r\n"))
+// WriteLine writes a line to connection.
+func (ctx *TextProtocolContext) WriteLine(line string) error {
+	return ctx.WriteData([]byte(line + "\r\n"))
 }
 
-// SendData writes data to connection.
-func (ctx *TextProtocolContext) SendData(buf []byte) error {
+// WriteData writes data to connection.
+func (ctx *TextProtocolContext) WriteData(buf []byte) error {
 	nn, err := ctx.wr.Write(buf)
 	if err != nil {
 		ctx.Close()

@@ -11,8 +11,8 @@ func main() {
 	prt := &tcpserver.TextProtocol{
 		OnReadLine: func(ctx *tcpserver.TextProtocolContext, line string) int {
 			if line == "" {
-				ctx.SendLine("HTTP/1.1 200 OK")
-				ctx.SendLine("")
+				ctx.WriteLine("HTTP/1.1 200 OK")
+				ctx.WriteLine("")
 				ip := ""
 				a := strings.Split(ctx.Conn.RemoteAddr().String(), ":")
 				if len(a) > 0 {
@@ -23,7 +23,7 @@ func main() {
 						ip = a[0]
 					}
 				}
-				ctx.SendLine(ip)
+				ctx.WriteLine(ip)
 				ctx.Close()
 				return 0
 			}
