@@ -16,7 +16,7 @@ var (
 	errMaxLineSizeExceeded = errors.New("max line size exceeded")
 )
 
-// TextProtocol defines parameters for Handler of text protocol.
+// TextProtocol defines parameters for Handler of text based protocol.
 type TextProtocol struct {
 	// Accept handler. It will be called before reading line.
 	OnAccept func(ctx *TextProtocolContext)

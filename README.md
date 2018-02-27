@@ -4,6 +4,10 @@
 
 Go TCP Server library provides `tcpserver` package implements TCP server.
 
+Make TCP socket programming easy. Go TCP Server library has `TCPServer` struct
+seems like `Server` struct of `http` package to create TCP servers. Also offers
+`TextProtocol` struct as a `Handler` to implement text based protocols.
+
 ## Examples
 
 For more examples, examples/
