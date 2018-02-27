@@ -18,6 +18,7 @@ func main() {
 			fmt.Println(line)
 			if line == "QUIT" {
 				ctx.Done()
+				return 0
 			}
 			ctx.SendLine("PONG: " + line)
 			return 0
