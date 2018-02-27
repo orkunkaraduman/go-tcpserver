@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	// DefMaxLineSize specifies maximum line size with delimiter if
+	// TextProtocol.MaxLineSize is 0.
 	DefMaxLineSize = 1 * 1024
 )
 
@@ -16,46 +18,67 @@ var (
 	errMaxLineSizeExceeded = errors.New("max line size exceeded")
 )
 
+// TextProtocol defines parameters for Handler of text protocol.
 type TextProtocol struct {
-	OnAccept    func(ctx *TextProtocolContext)
-	OnQuit      func(ctx *TextProtocolContext)
-	OnReadLine  func(ctx *TextProtocolContext, line string) int
-	OnReadData  func(ctx *TextProtocolContext, data []byte)
+	// Accept handler. It will be called before reading line.
+	OnAccept func(ctx *TextProtocolContext)
+
+	// Quit handler. It will be called before closing.
+	OnQuit func(ctx *TextProtocolContext)
+
+	// ReadLine handler. If it returns greater then 0, context reads data from
+	// connection n bytes. And after will be call OnReadData.
+	OnReadLine func(ctx *TextProtocolContext, line string) (n int)
+
+	// ReadData handler.
+	OnReadData func(ctx *TextProtocolContext, data []byte)
+
+	// MaxLineSize specifies maximum line size with delimiter.
 	MaxLineSize int
-	UserData    interface{}
+
+	// User data to use free.
+	UserData interface{}
 }
 
+// Serve implements Handler.Serve.
 func (prt *TextProtocol) Serve(conn net.Conn, closeCh <-chan struct{}) {
 	ctx := &TextProtocolContext{
-		Prt:     prt,
-		Conn:    conn,
-		closeCh: closeCh,
-		doneCh:  make(chan struct{}, 1),
-		rd:      bufio.NewReader(conn),
-		wr:      bufio.NewWriter(conn),
+		Prt:      prt,
+		Conn:     conn,
+		closeCh:  closeCh,
+		closeCh2: make(chan struct{}, 1),
+		rd:       bufio.NewReader(conn),
+		wr:       bufio.NewWriter(conn),
 	}
-	ctx.Serve()
+	ctx.serve()
 }
 
+// TextProtocolContext defines parameters for text protocol context.
 type TextProtocolContext struct {
-	Prt      *TextProtocol
-	Conn     net.Conn
+	// Pointer of TextProtocol struct handled by this context.
+	Prt *TextProtocol
+
+	// Connection handled by this context.
+	Conn net.Conn
+
+	// User data to use free.
 	UserData interface{}
 
-	closeCh <-chan struct{}
-	doneCh  chan struct{}
-	rd      *bufio.Reader
-	wr      *bufio.Writer
+	closeCh  <-chan struct{}
+	closeCh2 chan struct{}
+	rd       *bufio.Reader
+	wr       *bufio.Writer
 }
 
-func (ctx *TextProtocolContext) Done() {
+// Close closes context.
+func (ctx *TextProtocolContext) Close() {
 	select {
-	case ctx.doneCh <- struct{}{}:
+	case ctx.closeCh2 <- struct{}{}:
 	default:
 	}
 }
 
-func (ctx *TextProtocolContext) Serve() {
+func (ctx *TextProtocolContext) serve() {
 	maxLineSize := ctx.Prt.MaxLineSize
 	if maxLineSize <= 0 {
 		maxLineSize = DefMaxLineSize
@@ -68,7 +91,7 @@ mainloop:
 		select {
 		case <-ctx.closeCh:
 			break mainloop
-		case <-ctx.doneCh:
+		case <-ctx.closeCh2:
 			break mainloop
 		default:
 		}
@@ -77,7 +100,7 @@ mainloop:
 			if err == errBufferLimitExceeded {
 				err = errMaxLineSizeExceeded
 			}
-			ctx.Done()
+			ctx.Close()
 			continue
 		}
 		line = TrimCrLf(line)
@@ -89,7 +112,7 @@ mainloop:
 		for i := 0; i < size; {
 			n, err := ctx.rd.Read(buf[i:])
 			if err != nil {
-				ctx.Done()
+				ctx.Close()
 				continue
 			}
 			i += n
@@ -102,22 +125,24 @@ mainloop:
 	}
 }
 
+// SendLine writes a line to connection.
 func (ctx *TextProtocolContext) SendLine(line string) error {
 	return ctx.SendData([]byte(line + "\r\n"))
 }
 
+// SendData writes data to connection.
 func (ctx *TextProtocolContext) SendData(buf []byte) error {
 	nn, err := ctx.wr.Write(buf)
 	if err != nil {
-		ctx.Done()
+		ctx.Close()
 		return err
 	}
 	if nn < len(buf) {
-		ctx.Done()
+		ctx.Close()
 		return io.ErrShortWrite
 	}
 	if err := ctx.wr.Flush(); err != nil {
-		ctx.Done()
+		ctx.Close()
 		return err
 	}
 	return nil

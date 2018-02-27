@@ -1,3 +1,6 @@
+/*
+Package tcpserver provides TCP server implementation.
+*/
 package tcpserver
 
 import (
@@ -10,11 +13,19 @@ import (
 	"time"
 )
 
+// A TCPServer defines parameters for running an TCP server.
 type TCPServer struct {
-	Addr      string
-	Handler   Handler
+	// TCP address to listen on.
+	Addr string
+
+	// Handler to invoke.
+	Handler Handler
+
+	// TLSConfig optionally provides a TLS configuration.
 	TLSConfig *tls.Config
-	ErrorLog  *log.Logger
+
+	// ErrorLog specifies an optional logger for errors in Handler.
+	ErrorLog *log.Logger
 
 	l       net.Listener
 	conns   map[net.Conn]connContext
@@ -27,6 +38,17 @@ type connContext struct {
 	closeCh chan struct{}
 }
 
+// Shutdown gracefully shuts down the server without interrupting any
+// connections. Shutdown works by first closing all open listeners, then
+// fills closeCh on Serve method of Handler, and then waiting indefinitely for
+// connections to exit Serve method of Handler and then close. If the provided
+// context expires before the shutdown is complete, Shutdown returns the
+// context's error, otherwise it returns any error returned from closing the
+// Server's underlying Listener(s).
+//
+// When Shutdown is called, Serve, ListenAndServe, and ListenAndServeTLS
+// immediately return nil. Make sure the program doesn't exit and waits
+// instead for Shutdown to return.
 func (srv *TCPServer) Shutdown(ctx context.Context) (err error) {
 	err = srv.l.Close()
 	select {
@@ -64,6 +86,11 @@ func (srv *TCPServer) Shutdown(ctx context.Context) (err error) {
 	}
 }
 
+// Close immediately closes all active net.Listeners and any connections.
+// For a graceful shutdown, use Shutdown.
+//
+// Close returns any error returned from closing the Server's underlying
+// Listener(s).
 func (srv *TCPServer) Close() (err error) {
 	err = srv.l.Close()
 	select {
@@ -84,6 +111,9 @@ func (srv *TCPServer) Close() (err error) {
 	return
 }
 
+// ListenAndServe listens on the TCP network address srv.Addr and then calls
+// Serve to handle requests on incoming connections. ListenAndServe returns a
+// nil error after Close or Shutdown method called.
 func (srv *TCPServer) ListenAndServe() error {
 	addr := srv.Addr
 	l, err := net.Listen("tcp", addr)
@@ -93,6 +123,10 @@ func (srv *TCPServer) ListenAndServe() error {
 	return srv.Serve(l)
 }
 
+// Serve accepts incoming connections on the Listener l, creating a new service
+// goroutine for each. The service goroutines read requests and then call
+// srv.Handler to reply to them. Serve returns a nil error after Close or
+// Shutdown method called.
 func (srv *TCPServer) Serve(l net.Listener) (err error) {
 	srv.l = l
 	srv.conns = make(map[net.Conn]connContext)

@@ -18,7 +18,7 @@ func main() {
 		OnReadLine: func(ctx *tcpserver.TextProtocolContext, line string) int {
 			fmt.Println(line)
 			if line == "QUIT" {
-				ctx.Done()
+				ctx.Close()
 				return 0
 			}
 			ctx.SendLine("PONG: " + line)

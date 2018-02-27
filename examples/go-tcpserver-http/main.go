@@ -13,7 +13,7 @@ func main() {
 				ctx.SendLine("HTTP/1.1 200 OK")
 				ctx.SendLine("")
 				ctx.SendLine(ctx.Conn.RemoteAddr().String())
-				ctx.Done()
+				ctx.Close()
 				return 0
 			}
 			return 0

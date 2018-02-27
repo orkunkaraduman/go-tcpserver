@@ -2,6 +2,7 @@ package tcpserver
 
 import "bufio"
 
+// ReadBytesLimit reads bytes as bufio.Reader.ReadBytes with limit.
 func ReadBytesLimit(b *bufio.Reader, delim byte, lim int) (line []byte, err error) {
 	line = make([]byte, 0)
 	for len(line) <= lim {
@@ -21,6 +22,7 @@ func ReadBytesLimit(b *bufio.Reader, delim byte, lim int) (line []byte, err erro
 	return
 }
 
+// TrimCrLf trims CRLF at end of buf.
 func TrimCrLf(buf []byte) []byte {
 	l := len(buf)
 	if l == 0 {
