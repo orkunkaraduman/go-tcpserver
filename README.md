@@ -18,28 +18,35 @@ For more examples, examples/
 package main
 
 import (
+	"fmt"
 	"log"
-	"strings"
 
 	"github.com/go-tcpserver/tcpserver"
 )
 
 func main() {
 	prt := &tcpserver.TextProtocol{
+		OnAccept: func(ctx *tcpserver.TextProtocolContext) {
+			ctx.SendLine("WELCOME")
+		},
+		OnQuit: func(ctx *tcpserver.TextProtocolContext) {
+			ctx.SendLine("QUIT")
+		},
 		OnReadLine: func(ctx *tcpserver.TextProtocolContext, line string) int {
-			if line == "" {
-				ctx.SendLine("HTTP/1.1 200 OK")
-				ctx.SendLine("")
-				ip := strings.SplitN(ctx.Conn.RemoteAddr().String(), ":", 2)[0]
-				ctx.SendLine(ip)
+			fmt.Println(line)
+			if line == "QUIT" {
 				ctx.Close()
 				return 0
 			}
+			ctx.SendLine(line)
 			return 0
+		},
+		OnReadData: func(ctx *tcpserver.TextProtocolContext, data []byte) {
+
 		},
 	}
 	srv := &tcpserver.TCPServer{
-		Addr:    ":8000",
+		Addr:    ":1234",
 		Handler: prt,
 	}
 	log.Fatal(srv.ListenAndServe())
