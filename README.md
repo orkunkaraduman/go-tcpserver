@@ -12,36 +12,35 @@ seems like `Server` struct of `http` package to create TCP servers. Also offers
 
 For more examples, examples/
 
-### examples/go-tcpserver-simple
+### examples/go-tcpserver-httpip
 
 ```go
 package main
 
 import (
 	"log"
-	"net"
+	"strings"
 
 	"github.com/go-tcpserver/tcpserver"
 )
 
 func main() {
-	srv := &tcpserver.TCPServer{
-		Addr: ":1234",
-		Handler: tcpserver.HandlerFunc(func(conn net.Conn, closeCh <-chan struct{}) {
-			for {
-				var b [1]byte
-				n, err := conn.Read(b[:])
-				if err != nil {
-					break
-				}
-				if n > 0 {
-					n, err := conn.Write(b[:])
-					if err != nil || n < 1 {
-						break
-					}
-				}
+	prt := &tcpserver.TextProtocol{
+		OnReadLine: func(ctx *tcpserver.TextProtocolContext, line string) int {
+			if line == "" {
+				ctx.SendLine("HTTP/1.1 200 OK")
+				ctx.SendLine("")
+				ip := strings.SplitN(ctx.Conn.RemoteAddr().String(), ":", 2)[0]
+				ctx.SendLine(ip)
+				ctx.Close()
+				return 0
 			}
-		}),
+			return 0
+		},
+	}
+	srv := &tcpserver.TCPServer{
+		Addr:    ":8000",
+		Handler: prt,
 	}
 	log.Fatal(srv.ListenAndServe())
 }
