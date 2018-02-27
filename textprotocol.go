@@ -7,11 +7,9 @@ import (
 	"net"
 )
 
-var (
-	// DefMaxLineSize specifies maximum line size with delimiter if
-	// TextProtocol.MaxLineSize is 0.
-	DefMaxLineSize = 1 * 1024
-)
+// DefMaxLineSize specifies maximum line size with delimiter if
+// TextProtocol.MaxLineSize is 0.
+var DefMaxLineSize = 1 * 1024
 
 var (
 	errBufferLimitExceeded = errors.New("buffer limit exceeded")
