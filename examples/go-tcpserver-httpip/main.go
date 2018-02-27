@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/go-tcpserver/tcpserver"
 )
@@ -12,7 +13,8 @@ func main() {
 			if line == "" {
 				ctx.SendLine("HTTP/1.1 200 OK")
 				ctx.SendLine("")
-				ctx.SendLine(ctx.Conn.RemoteAddr().String())
+				ip := strings.SplitN(ctx.Conn.RemoteAddr().String(), ":", 2)[0]
+				ctx.SendLine(ip)
 				ctx.Close()
 				return 0
 			}
@@ -20,7 +22,7 @@ func main() {
 		},
 	}
 	srv := &tcpserver.TCPServer{
-		Addr:    ":80",
+		Addr:    ":8000",
 		Handler: prt,
 	}
 	log.Fatal(srv.ListenAndServe())

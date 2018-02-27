@@ -21,7 +21,7 @@ func main() {
 				ctx.Close()
 				return 0
 			}
-			ctx.SendLine("PONG: " + line)
+			ctx.SendLine(line)
 			return 0
 		},
 		OnReadData: func(ctx *tcpserver.TextProtocolContext, data []byte) {
