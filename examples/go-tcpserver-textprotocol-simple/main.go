@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/go-tcpserver/tcpserver"
 )
@@ -31,5 +32,5 @@ func main() {
 		Addr:    ":1234",
 		Handler: prt,
 	}
-	srv.ListenAndServe()
+	log.Fatal(srv.ListenAndServe())
 }

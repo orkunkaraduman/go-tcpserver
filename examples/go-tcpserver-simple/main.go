@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net"
 
 	"github.com/go-tcpserver/tcpserver"
@@ -25,5 +26,5 @@ func main() {
 			}
 		}),
 	}
-	srv.ListenAndServe()
+	log.Fatal(srv.ListenAndServe())
 }
