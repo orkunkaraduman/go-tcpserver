@@ -19,7 +19,7 @@ func main() {
 				}
 				if n > 0 {
 					n, err := conn.Write(b[:])
-					if err != nil || n <= 0 {
+					if err != nil || n < 1 {
 						break
 					}
 				}
