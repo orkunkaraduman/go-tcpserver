@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	ts := &tcpserver.TCPServer{
+	srv := &tcpserver.TCPServer{
 		Addr: ":1234",
 		Handler: tcpserver.HandlerFunc(func(conn net.Conn, closeCh <-chan struct{}) {
 			for {
@@ -25,5 +25,5 @@ func main() {
 			}
 		}),
 	}
-	ts.ListenAndServe()
+	srv.ListenAndServe()
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	tp := &tcpserver.TextProtocol{
+	prt := &tcpserver.TextProtocol{
 		OnAccept: func(ctx *tcpserver.TextProtocolContext) {
 			ctx.SendLine("WELCOME")
 		},
@@ -27,9 +27,9 @@ func main() {
 
 		},
 	}
-	ts := &tcpserver.TCPServer{
+	srv := &tcpserver.TCPServer{
 		Addr:    ":1234",
-		Handler: tp,
+		Handler: prt,
 	}
-	ts.ListenAndServe()
+	srv.ListenAndServe()
 }

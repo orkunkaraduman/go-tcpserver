@@ -25,10 +25,10 @@ type TextProtocol struct {
 	UserData    interface{}
 }
 
-func (tp *TextProtocol) Serve(conn net.Conn, closeCh <-chan struct{}) {
+func (prt *TextProtocol) Serve(conn net.Conn, closeCh <-chan struct{}) {
 	ctx := &TextProtocolContext{
-		tp:      tp,
-		conn:    conn,
+		Prt:     prt,
+		Conn:    conn,
 		closeCh: closeCh,
 		doneCh:  make(chan struct{}, 1),
 		rd:      bufio.NewReader(conn),
@@ -38,10 +38,10 @@ func (tp *TextProtocol) Serve(conn net.Conn, closeCh <-chan struct{}) {
 }
 
 type TextProtocolContext struct {
+	Prt      *TextProtocol
+	Conn     net.Conn
 	UserData interface{}
 
-	tp      *TextProtocol
-	conn    net.Conn
 	closeCh <-chan struct{}
 	doneCh  chan struct{}
 	rd      *bufio.Reader
@@ -56,12 +56,12 @@ func (ctx *TextProtocolContext) Done() {
 }
 
 func (ctx *TextProtocolContext) Serve() {
-	maxLineSize := ctx.tp.MaxLineSize
+	maxLineSize := ctx.Prt.MaxLineSize
 	if maxLineSize <= 0 {
 		maxLineSize = DefMaxLineSize
 	}
-	if ctx.tp.OnAccept != nil {
-		ctx.tp.OnAccept(ctx)
+	if ctx.Prt.OnAccept != nil {
+		ctx.Prt.OnAccept(ctx)
 	}
 mainloop:
 	for {
@@ -81,7 +81,7 @@ mainloop:
 			continue
 		}
 		line = TrimCrLf(line)
-		size := ctx.tp.OnReadLine(ctx, string(line))
+		size := ctx.Prt.OnReadLine(ctx, string(line))
 		if size <= 0 {
 			continue
 		}
@@ -94,11 +94,11 @@ mainloop:
 			}
 			i += n
 		}
-		ctx.tp.OnReadData(ctx, buf)
+		ctx.Prt.OnReadData(ctx, buf)
 	}
 	ctx.wr.Flush()
-	if ctx.tp.OnQuit != nil {
-		ctx.tp.OnQuit(ctx)
+	if ctx.Prt.OnQuit != nil {
+		ctx.Prt.OnQuit(ctx)
 	}
 }
 
