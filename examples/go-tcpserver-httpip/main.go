@@ -13,7 +13,16 @@ func main() {
 			if line == "" {
 				ctx.SendLine("HTTP/1.1 200 OK")
 				ctx.SendLine("")
-				ip := strings.SplitN(ctx.Conn.RemoteAddr().String(), ":", 2)[0]
+				ip := ""
+				a := strings.Split(ctx.Conn.RemoteAddr().String(), ":")
+				if len(a) > 0 {
+					if len(a) > 1 {
+						a = a[0 : len(a)-1]
+						ip = strings.Join(a, ":")
+					} else {
+						ip = a[0]
+					}
+				}
 				ctx.SendLine(ip)
 				ctx.Close()
 				return 0
