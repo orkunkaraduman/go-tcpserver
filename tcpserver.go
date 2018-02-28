@@ -123,6 +123,24 @@ func (srv *TCPServer) ListenAndServe() error {
 	return srv.Serve(l)
 }
 
+// ListenAndServeTLS listens on the TCP network address srv.Addr and
+// then calls Serve to handle requests on incoming TLS connections.
+//
+// Filenames containing a certificate and matching private key for the
+// server must be provided if neither the Server's TLSConfig.Certificates
+// nor TLSConfig.GetCertificate are populated. If the certificate is
+// signed by a certificate authority, the certFile should be the
+// concatenation of the server's certificate, any intermediates, and
+// the CA's certificate.
+func (srv *TCPServer) ListenAndServeTLS(certFile, keyFile string) error {
+	addr := srv.Addr
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	return srv.ServeTLS(l, certFile, keyFile)
+}
+
 // Serve accepts incoming connections on the Listener l, creating a new service
 // goroutine for each. The service goroutines read requests and then call
 // srv.Handler to reply to them. Serve returns a nil error after Close or
@@ -154,6 +172,33 @@ func (srv *TCPServer) Serve(l net.Listener) (err error) {
 	}
 }
 
+// ServeTLS accepts incoming connections on the Listener l, creating a
+// new service goroutine for each. The service goroutines read requests and
+// then call srv.Handler to reply to them. ServeTLS returns a nil error after
+// Close or Shutdown method called.
+//
+// Additionally, files containing a certificate and matching private key for
+// the server must be provided if neither the Server's TLSConfig.Certificates
+// nor TLSConfig.GetCertificate are populated.. If the certificate is signed by
+// a certificate authority, the certFile should be the concatenation of the
+// server's certificate, any intermediates, and the CA's certificate.
+func (srv *TCPServer) ServeTLS(l net.Listener, certFile, keyFile string) (err error) {
+	config := srv.TLSConfig
+	if config == nil {
+		config = &tls.Config{}
+	}
+	configHasCert := len(config.Certificates) > 0 || config.GetCertificate != nil
+	if !configHasCert || certFile != "" || keyFile != "" {
+		config.Certificates = make([]tls.Certificate, 1)
+		config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return
+		}
+	}
+	tlsListener := tls.NewListener(l, config)
+	return srv.Serve(tlsListener)
+}
+
 func (srv *TCPServer) serve(conn net.Conn) {
 	closeCh := make(chan struct{}, 1)
 
@@ -170,25 +215,13 @@ func (srv *TCPServer) serve(conn net.Conn) {
 			errorLog = log.New(ioutil.Discard, "", log.LstdFlags)
 		}
 		func() {
-			handlerConn := conn
-			if srv.TLSConfig != nil {
-				tlsConn := tls.Server(conn, srv.TLSConfig)
-				if err := tlsConn.Handshake(); err != nil {
-					//errorLog.Print("tls error:", err)
-					handlerConn = nil
-				} else {
-					handlerConn = tlsConn
-				}
-			}
 			defer func() {
 				e := recover()
 				if e != nil {
 					errorLog.Print(e)
 				}
 			}()
-			if handlerConn != nil {
-				srv.Handler.Serve(handlerConn, closeCh)
-			}
+			srv.Handler.Serve(conn, closeCh)
 		}()
 	}
 
