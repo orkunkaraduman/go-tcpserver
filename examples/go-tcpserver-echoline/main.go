@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-tcpserver/tcpserver"
+	"github.com/orkunkaraduman/go-tcpserver"
 )
 
 func main() {

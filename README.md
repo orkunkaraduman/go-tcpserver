@@ -1,6 +1,6 @@
 # Go TCP Server library
 
-[![GoDoc](https://godoc.org/github.com/go-tcpserver/tcpserver?status.svg)](https://godoc.org/github.com/go-tcpserver/tcpserver)
+[![GoDoc](https://godoc.org/github.com/orkunkaraduman/go-tcpserver?status.svg)](https://godoc.org/github.com/orkunkaraduman/go-tcpserver)
 
 Go TCP Server library provides `tcpserver` package implements TCP server.
 
@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-tcpserver/tcpserver"
+	"github.com/orkunkaraduman/go-tcpserver"
 )
 
 func main() {
