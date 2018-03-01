@@ -18,18 +18,18 @@ var (
 
 // TextProtocol defines parameters for Handler of text based protocol.
 type TextProtocol struct {
-	// Accept handler. It will be called before reading line.
+	// Accept callback. It will be called before reading line.
 	OnAccept func(ctx *TextProtocolContext)
 
-	// Quit handler. It will be called before closing.
+	// Quit callback. It will be called before closing.
 	OnQuit func(ctx *TextProtocolContext)
 
-	// ReadLine handler. If it returns greater then 0, context reads data from
+	// ReadLine callback. If it returns greater then 0, context reads data from
 	// connection n bytes. And after will be call OnReadData.
 	OnReadLine func(ctx *TextProtocolContext, line string) (n int)
 
-	// ReadData handler.
-	OnReadData func(ctx *TextProtocolContext, data []byte)
+	// ReadData callback.
+	OnReadData func(ctx *TextProtocolContext, buf []byte)
 
 	// MaxLineSize specifies maximum line size with delimiter.
 	MaxLineSize int
@@ -115,7 +115,9 @@ mainloop:
 			}
 			i += n
 		}
-		ctx.Prt.OnReadData(ctx, buf)
+		if ctx.Prt.OnReadData != nil {
+			ctx.Prt.OnReadData(ctx, buf)
+		}
 	}
 	ctx.wr.Flush()
 	if ctx.Prt.OnQuit != nil {
