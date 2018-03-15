@@ -1,29 +1,35 @@
 package tcpserver
 
-import "bufio"
+import (
+	"bufio"
+	"errors"
+)
+
+var (
+	// ErrBufferLimitExceeded is returned when specified buffer limit
+	// was exceeded.
+	ErrBufferLimitExceeded = errors.New("buffer limit exceeded")
+)
 
 // ReadBytesLimit reads bytes as bufio.Reader.ReadBytes with limit.
 func ReadBytesLimit(b *bufio.Reader, delim byte, lim int) (line []byte, err error) {
 	line = make([]byte, 0)
 	for len(line) <= lim {
-		buf, e := b.ReadSlice(delim)
+		var buf []byte
+		buf, err = b.ReadSlice(delim)
 		line = append(line, buf...)
-		if e != nil {
-			if e == bufio.ErrBufferFull {
-				continue
-			}
-			err = e
+		if err != bufio.ErrBufferFull {
+			break
 		}
-		break
 	}
 	if err == nil && len(line) > lim {
-		err = errBufferLimitExceeded
+		err = ErrBufferLimitExceeded
 	}
 	return
 }
 
-// TrimCrLf trims CRLF at end of buf.
-func TrimCrLf(buf []byte) []byte {
+// trimCrLf trims CRLF at end of buf. (obsolete)
+func trimCrLf(buf []byte) []byte {
 	l := len(buf)
 	if l == 0 {
 		return buf

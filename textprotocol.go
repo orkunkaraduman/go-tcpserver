@@ -2,7 +2,7 @@ package tcpserver
 
 import (
 	"bufio"
-	"errors"
+	"bytes"
 	"io"
 	"net"
 )
@@ -10,11 +10,6 @@ import (
 // DefMaxLineSize specifies maximum line size with delimiter if
 // TextProtocol.MaxLineSize is 0.
 var DefMaxLineSize = 1 * 1024
-
-var (
-	errBufferLimitExceeded = errors.New("buffer limit exceeded")
-	errMaxLineSizeExceeded = errors.New("max line size exceeded")
-)
 
 // TextProtocol defines parameters for Handler of text based protocol.
 type TextProtocol struct {
@@ -62,6 +57,8 @@ type TextProtocolContext struct {
 	// User data to use free.
 	UserData interface{}
 
+	//
+
 	closeCh  <-chan struct{}
 	closeCh2 chan struct{}
 	rd       *bufio.Reader
@@ -95,25 +92,20 @@ mainloop:
 		}
 		line, err := ReadBytesLimit(ctx.rd, '\n', maxLineSize)
 		if err != nil {
-			if err == errBufferLimitExceeded {
-				err = errMaxLineSizeExceeded
-			}
 			ctx.Close()
 			continue
 		}
-		line = TrimCrLf(line)
+		line = bytes.TrimSuffix(line, []byte("\n"))
+		line = bytes.TrimSuffix(line, []byte("\r"))
 		size := ctx.Prt.OnReadLine(ctx, string(line))
 		if size <= 0 {
 			continue
 		}
 		buf := make([]byte, size)
-		for i := 0; i < size; {
-			n, err := ctx.rd.Read(buf[i:])
-			if err != nil {
-				ctx.Close()
-				continue
-			}
-			i += n
+		_, err = io.ReadFull(ctx.rd, buf)
+		if err != nil {
+			ctx.Close()
+			continue
 		}
 		if ctx.Prt.OnReadData != nil {
 			ctx.Prt.OnReadData(ctx, buf)
