@@ -57,8 +57,6 @@ type TextProtocolContext struct {
 	// User data to use free.
 	UserData interface{}
 
-	//
-
 	closeCh  <-chan struct{}
 	closeCh2 chan struct{}
 	rd       *bufio.Reader
