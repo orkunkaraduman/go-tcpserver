@@ -1,3 +1,7 @@
+# DISCONTINUED
+
+Please visit: [github.com/orkunkaraduman/go-accepter](https://github.com/orkunkaraduman/go-accepter)
+
 # Go TCP Server library
 
 [![GoDoc](https://godoc.org/github.com/orkunkaraduman/go-tcpserver?status.svg)](https://godoc.org/github.com/orkunkaraduman/go-tcpserver)

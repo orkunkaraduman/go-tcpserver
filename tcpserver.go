@@ -1,6 +1,5 @@
-/*
-Package tcpserver provides TCP server implementation.
-*/
+// Package tcpserver is discontinued. Please visit: github.com/orkunkaraduman/go-accepter
+// Package tcpserver provides TCP server implementation.
 package tcpserver
 
 import (
